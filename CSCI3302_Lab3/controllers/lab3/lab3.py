@@ -7,8 +7,8 @@ import math
 
 # TODO: Fill out with correct values from Robot Spec Sheet (or inspect PROTO definition for the robot)
 MAX_SPEED = 0.0001 # [rad/s]
-MAX_SPEED_MS = 0.0001 # [m/s]
-AXLE_LENGTH = 0.0001 # [m]
+MAX_SPEED_MS = 0.22 # [m/s]
+AXLE_LENGTH = 0.160 # [m]
 
 
 
@@ -17,6 +17,8 @@ MOTOR_RIGHT = 1 # Right wheel index
 
 # create the Robot instance.
 robot = Robot()
+MAX_SPEED = robot.getMaxVelocity()
+SIM_TIMESTEP = int(robot.getBasicTimeStep())
 
 # get the time step of the current world.
 timestep = int(robot.getBasicTimeStep())
@@ -47,26 +49,58 @@ vR = 0
 # TODO
 # Create you state and goals (waypoints) variable here
 # You have to MANUALLY figure out the waypoints, one sample is provided for you in the instructions
+goal = [(1.5, 1)]
+
+i = 0
 
 while robot.step(timestep) != -1:
 
     # STEP 2.1: Calculate sources of error
+    # x_g, y_g are the desired locations(goal) and x_r, y_r are the current locaitons 
+    x_g = goal[i][0]
+    y_g = goal[i][1]
+    theta_g = (7/12)*(math.pi) # guessing 
+    rho = math.sqrt((pose_x - x_g)^2 + (pose_y - y_g)^2)
+    alpha = math.atan((y_g - pose_y)/(x_g - pose_x)) - pose_theta
+    eta = theta_g - pose_theta
+#     print()
     pass   
     
     # STEP 2.2: Feedback Controller
+    p_1 = 2
+    p_2 = 2
+    p_3 = 2
+    x_dot = (p_1)*rho
+    theta_dot = (p_2)*alpha + (p_3)*eta
     pass
     
+    # testing values 
+    print("rho = {}".format(rho))
+    print("alpha = {}".format(alpha))
+    print("eta = {}".format(eta))
+
     # STEP 1: Inverse Kinematics Equations (vL and vR as a function dX and dTheta)
     # Note that vL and vR in code is phi_l and phi_r on the slides/lecture
-    
+    # 
+    time = SIM_TIMESTEP/1000 # time step in second
+    d = AXLE_LENGTH # axle length in milimeters  
+
+    x_dot_i = (pose_x/time) 
+    x_dot_r = x_dot_i/math.acos(pose_theta)
+    omega_dot_r = pose_theta/time
+    phi_right = x_dot_r + omega_dot_r*d/2 #algebra manipulation of equations
+    phi_left = x_dot_r + omega_dot_r*d/2
+    vL = phi_left * MAX_SPEED/MAX_SPEED_MS
+    vR = phi_right * MAX_SPEED/MAX_SPEED_MS
     pass
     
     # STEP 2.3: Proportional velocities
-    vL = 0 # Left wheel velocity in rad/s
-    vR = 0 # Right wheel velocity in rad/s
+    vL = vL/MAX_SPEED # Left wheel velocity in rad/s
+    vR = vR/MAX_SPEED # Right wheel velocity in rad/s
     pass
 
     # STEP 2.4: Clamp wheel speeds
+    # we dont need this  
     pass
 
 
@@ -74,6 +108,7 @@ while robot.step(timestep) != -1:
     # TODO
     # Use Your Lab 2 Odometry code after these 2 comments. We will supply you with our code next week 
     # after the Lab 2 deadline but you free to use your own code if you are sure about its correctness
+
     
     # NOTE that the odometry should ONLY be a function of 
     # (vL, vR, MAX_SPEED, MAX_SPEED_MS, timestep, AXLE_LENGTH, pose_x, pose_y, pose_theta)
@@ -92,8 +127,13 @@ while robot.step(timestep) != -1:
     ###############################################
 
     # TODO
-    # Set robot motors to the desired velocities
-    robot_parts[MOTOR_LEFT].setVelocity(0)
-    robot_parts[MOTOR_RIGHT].setVelocity(0)
+    # Set robot motors to the desired velocities if some stop criteria is met 
+
+    cm_error = 0.03
+    theta_error = (math.pi)/6
+
+    if(eta <= theta_error and alpha < cm_error and rho <= cm_error): 
+        robot_parts[MOTOR_LEFT].setVelocity(0)
+        robot_parts[MOTOR_RIGHT].setVelocity(0)
 
     
